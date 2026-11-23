@@ -1,52 +1,67 @@
-# Livrable NovaMarket S1
+# Évaluation Collective n°1 — Projet NovaMarket (S1 à S3)
 
-## M1 : Modélisation et Grains des sources
-- **Grains et relations 1–N :**
-  - `customers.csv` : 1 ligne = 1 client unique (`customer_id`).
-  - `orders.csv` : 1 ligne = 1 commande (`order_id`). Relation 1–N : 1 client possède N commandes.
-  - `order_items.csv` : 1 ligne = 1 ligne d'article (`order_item_id`). Relation 1–N : 1 commande possède N articles.
-  - `payments.ndjson` : 1 ligne = 1 opération de paiement (`payment_id`). Relation 1–N : 1 commande possède N paiements.
-- **Choix de conception :**
-  1. Utilisation de l'entier (`integer`) pour les montants en centimes afin d'éviter les erreurs d'arrondi des nombres flottants.
-  2. Sécurisation des statuts (`completed`, `pending`, `cancelled` / `captured`) directement via des contraintes `CHECK` sensibles à la casse, évitant des jointures inutiles et bloquant toute erreur de saisie.
+## 1. Architecture et Exécution du Projet
+Le dépôt regroupe l'ensemble des scripts reproductibles de la chaîne de données NovaMarket :
+- `s1/import.sql` & `s1/indicateur.sql` : Création du schéma transactionnel, contrôle des rejets et calcul des indicateurs commerciaux de base.
+- `s2/catalogue.sql` : Intégration des catégories et des produits, contrôle de couverture et ajout des clés étrangères.
+- `s2/analyses.sql` : Requêtes analytiques avancées (`RANK`, `LAG`/`LEAD`, `NTILE`, `WITH RECURSIVE`) et audit temporel.
+- `s3/benchmark.sql` : Tests de performance (`EXPLAIN (ANALYZE, BUFFERS)`) et d'indexation sur la table isolée `benchmark.benchmark_sales` (10 millions de lignes générées par `s3/generer.sql`).
 
-## M2 : Qualité et Intégration
-- **Volumes :** 180 clients, 400 commandes et 480 paiements reçus et intégrés (0 rejet).
-- **Journal des rejets (`order_items.csv`) :** Sur 802 lignes reçues, 800 ont été intégrées et 2 écartées :
-  - **1 doublon strict :** La ligne `order_item_id = 7` (commande 4) était présente en double ; fusionnée via `SELECT DISTINCT`.
-  - **1 référence orpheline :** La ligne `order_item_id = 801` pointait vers la commande inexistante `order_id = 9999` ; rejetée par filtrage référentiel pour préserver la clé étrangère.
+---
 
-## M3 : Résultats des indicateurs
-- **Clients sans commande :** 30 clients.
-- **Répartition des commandes :** 320 `completed`, 40 `pending`, 40 `cancelled`.
-- **CA Total (commandes terminées) :** 26 210,00 € (2 621 000 centimes).
-- **Panier Moyen :** 81,91 € (8 190,63 centimes — dénominateur explicite : les 320 commandes terminées).
-- **Rapprochement des paiements :** Le total des paiements encaissés (`captured`) sur les commandes terminées s'élève à 26 210,00 € (2 621 000 centimes). L'écart avec le CA facturé est de 0, ce qui valide la cohérence entre les grains.
+## 2. Synthèse S1 — Modélisation, Rejets et Indicateurs Socles
+- **Grains & Schéma :** `customers` (180) → `orders` (400) → `order_items` (800 retenus) et `payments` (480). Montants stockés en `integer` (centimes) pour éviter les erreurs d'arrondi flottant ; statuts verrouillés par contraintes `CHECK` sensibles à la casse.
+- **Journal des rejets S1 (`order_items.csv` — 802 lignes reçues) :**
+  - `order_item_id = 7` : doublon strict fusionné via `SELECT DISTINCT`.
+  - `order_item_id = 801` : référence orpheline vers la commande inexistante `order_id = 9999`, écartée par filtrage référentiel.
+- **Indicateurs clés (périmètre : commandes `completed`) :**
+  - Répartition des commandes : 320 `completed`, 40 `pending`, 40 `cancelled` (et 30 clients sans commande).
+  - CA réalisé : **26 210,00 €** (2 621 000 centimes).
+  - Panier moyen : **81,91 €** (dénominateur explicite : 320 commandes terminées).
+  - Rapprochement paiements (`captured` sur commandes `completed`) : **26 210,00 €** (écart = 0).
 
-## M4 : Tableau d'investigation des anomalies
+---
 
-| Anomalie | Détection (SQL) | Risque et Effet Métier | Action et Décision |
-|---|---|---|---|
-| Doublon de ligne (`id=7`) | `GROUP BY order_item_id HAVING COUNT(*) > 1` | Gonfle artificiellement le CA et les quantités vendues. | Dédoublonnage via `SELECT DISTINCT` à l'insertion. |
-| Référence orpheline (`cmd=9999`) | `LEFT JOIN orders o ON oi.order_id = o.order_id WHERE o.order_id IS NULL` | CA "fantôme" non attribuable à un client ; violation de clé étrangère. | Filtrage restrictif via `WHERE order_id IN (SELECT order_id FROM orders)`. |
-| Multiplication par jointure | Jointure directe `orders` + `order_items` + `payments` | Si 1 commande a 3 articles et 2 paiements, la jointure génère 6 lignes et multiplie les montants. | Agréger (`SUM`) dans une CTE (`WITH`) par grain *avant* de joindre. |
-| Statut non filtré | Omission de `WHERE o.status = 'completed'` | Intègre des commandes en attente ou annulées dans le CA réalisé. | Toujours filtrer sur `status = 'completed'` pour le CA réalisé. |
+## 3. Synthèse S2 — Catalogue et Analyses Avancées
 
-## M5 : État du projet et exécution
-- **Structure du dépôt (`s1/`) :**
-  - `import.sql` : Création des tables temporaires de réception, DDL du schéma cible et intégration filtrée.
-  - `indicateurs.sql` : Requêtes SQL reproductibles des indicateurs commerciaux et de rapprochement.
-  - `README.md` : Documentation, audit des rejets et preuves.
-- **Exécution :** Lancer `psql` sur la base `novamarket` puis exécuter `\i s1/import.sql` suivi de `\i s1/indicateurs.sql`.
-- **Limites identifiées :** Le catalogue produits (`product_id`) et les devises autres que l'euro sont hors périmètre S1.
+### M1 : Intégration du catalogue et anomalies
+- **`categories.csv` :** 10 catégories intégrées (2 racines sans parent : *Maison* et *Loisirs*, 8 sous-catégories valides).
+- **`products.csv` :** 25 lignes reçues → **24 produits intégrés**. La fiche `product_id = 3` (`NM-003`, *Article 03*) était dupliquée à l'identique (lignes 4 et 26) et a été dédoublonnée via `DISTINCT`.
+- **Couverture :** Les 24 `product_id` du catalogue couvrent 100 % des produits vendus dans `order_items` (0 orphelin).
 
-## A1 : Variantes et Normalisation
-- **Anomalies sur `planning_a_normaliser.csv` (table redondante) :**
-  - *Insertion :* Impossible d'enregistrer une nouvelle salle sans créer une réservation fictive.
-  - *Mise à jour :* Changer le responsable d'une salle oblige à modifier toutes ses lignes de réservation (risque d'incohérence).
-  - *Suppression :* Supprimer la dernière réservation d'une salle efface l'existence même de la salle et de son responsable.
-  - *Solution :* Normalisation en 3NF en séparant `salles` et `reservations` via une clé étrangère `salle_id`.
-- **Test d'une autre stratégie de jointure :**
-  - Un `LEFT JOIN` direct depuis `orders` vers `payments` fonctionne tant qu'on ne joint pas `order_items` en même temps (sinon produit cartésien partiel qui duplique les paiements).
-  - *Alternative retenue :* Pré-agrégation via une CTE (`WITH`) ou utilisation d'un `LEFT JOIN LATERAL` pour isoler le calcul par commande avant toute jointure multi-grains.
-  
+### M2 : Résultats des fonctions analytiques et limites
+- **Classement par catégorie (`RANK()`) :**
+  - *Effet de duplication :* Sans le dédoublonnage de `product_id = 3` dans la catégorie *Rangement* (11), son CA passe artificiellement de `23 625` à `47 250` centimes, le faisant passer de la 4e à la 3e place devant l'*Article 01* (`32 500` centimes).
+- **Évolution mensuelle (`LAG()` / `LEAD()`) :**
+  - Septembre 2026 (120 cmd) : **971 750** centimes (`9 717,50 €`).
+  - Octobre 2026 (124 cmd) : **1 026 125** centimes (`10 261,25 €`, soit `+54 375` centimes / `+5,6 %`).
+  - Novembre 2026 (76 cmd) : **623 125** centimes (`6 231,25 €`, soit `-403 000` centimes).
+  - *Limite méthodologique (période incomplète) :* Les commandes de novembre s'arrêtent au **19/11/2026**. La baisse apparente de novembre n'est pas une chute d'activité mais un biais de période incomplète (19 jours contre 31 en octobre).
+- **Incohérence de dates (`ordered_on < first_listed_on`) :**
+  - **5 commandes** (IDs `5`, `22`, `29`, `46`, `53`, entre le 01/09/2026 et le 11/09/2026) contiennent l'*Article 06* (`product_id = 6`), alors que sa date officielle de première mise en vente est le **15/09/2026** (soit `6 250` centimes vendus avant la date catalogue).
+
+### A1 : Segmentation (`NTILE(4)`) et Hiérarchie (`WITH RECURSIVE`)
+- **Segmentation clients :** Sur la population totale des **180 clients** (45 par quartile, triés par `ca_total_cents DESC, customer_id ASC` pour stabiliser les égalités) :
+  - Q1 (Top 25 %) : de `23 625` à `36 375` centimes (CA cumulé : `1 308 750` centimes).
+  - Q2 : de `16 750` à `23 625` centimes (`899 125` centimes).
+  - Q3 : de `0` à `16 750` centimes (`413 125` centimes).
+  - Q4 : `0` centime (les 30 clients sans commande + 15 clients avec commandes uniquement `pending`/`cancelled`).
+- **Consolidation par branche (`WITH RECURSIVE`) :**
+  - Branche *Maison* (`id=1`) : **824 375** centimes (dont *Atelier* `476 625` = *Rangement* `166 625` + *Outillage* `310 000`, et *Cuisine* `347 750`).
+  - Branche *Loisirs* (`id=2`) : **1 796 625** centimes (dont *Extérieur* `1 182 000` = *Jardin* `505 375` + *Randonnée* `676 625`, et *Jeux de table* `614 625`).
+  - *Vérification :* `824 375 + 1 796 625 = 2 621 000` centimes (aucun double comptage, protection anti-cycle par tableau `chemin`).
+
+---
+
+## 4. Synthèse S3 — Benchmark, Indexation et Analyse Critique
+
+| Scénario de test (10 000 000 lignes) | Sélectivité | Plan sans index | Plan avec index (`store_id`) | Interprétation technique |
+|---|---|---|---|---|
+| **Filtre A :** `WHERE store_id = 42` | **Haute** (`100` lignes = `0,001 %`) | `Parallel Seq Scan` (lecture intégrale des blocs de la table) | `Index Scan` / `Bitmap Index Scan` (accès direct aux pages ciblées) | **Gain majeur :** L'index évite de parcourir les 10 millions de lignes et réduit drastiquement les accès disques/tampons (`BUFFERS`). |
+| **Filtre B :** `WHERE store_id = 1` | **Très faible** (`9 500 000` lignes = `95 %`) | `Parallel Seq Scan` | `Parallel Seq Scan` (**Index ignoré**) | **Cas d'index inefficace :** Lire 95 % de la table via des allers-retours index → table coûte plus cher qu'une lecture séquentielle directe. PostgreSQL écarte volontairement l'index. |
+
+### Risques majeurs de jointure et d'estimation (M4 & A1)
+1. **Multiplication des lignes par jointure multi-grains :**
+   - Dans `benchmark`, le magasin `store_id = 42` est rattaché à **2 campagnes** (`101` et `102`) dans `campaign_assignments`. Une jointure directe `benchmark_sales JOIN campaign_assignments` duplique chacune de ses 100 ventes (200 lignes en sortie) et **double artificiellement son chiffre d'affaires**. Il faut toujours agréger par `store_id` avant de joindre les campagnes.
+2. **Écart entre cardinalités estimées (`rows`) et réelles (`actual rows`) :**
+   - Lorsqu'une colonne présente une forte asymétrie (comme `store_id` où la valeur `1` occupe 95 % des lignes et 5 000 autres magasins se partagent 5 %), un planificateur sans statistiques à jour (`ANALYZE`) sous-estime massivement les lignes de `store_id = 1` ou surestime les magasins rares, ce qui peut provoquer un mauvais choix de jointure (*Nested Loop* au lieu de *Hash Join*).
