@@ -65,3 +65,14 @@ Le dépôt regroupe l'ensemble des scripts reproductibles de la chaîne de donn�
    - Dans `benchmark`, le magasin `store_id = 42` est rattaché à **2 campagnes** (`101` et `102`) dans `campaign_assignments`. Une jointure directe `benchmark_sales JOIN campaign_assignments` duplique chacune de ses 100 ventes (200 lignes en sortie) et **double artificiellement son chiffre d'affaires**. Il faut toujours agréger par `store_id` avant de joindre les campagnes.
 2. **Écart entre cardinalités estimées (`rows`) et réelles (`actual rows`) :**
    - Lorsqu'une colonne présente une forte asymétrie (comme `store_id` où la valeur `1` occupe 95 % des lignes et 5 000 autres magasins se partagent 5 %), un planificateur sans statistiques à jour (`ANALYZE`) sous-estime massivement les lignes de `store_id = 1` ou surestime les magasins rares, ce qui peut provoquer un mauvais choix de jointure (*Nested Loop* au lieu de *Hash Join*).
+---
+
+## 5. Séance S3 — Ingestion Asynchrone Python (`aiohttp` / `asyncio`)
+
+### Contrat HTTP de l'API Fournisseur (Mission M1)
+- **Endpoint :** `GET http://127.0.0.1:18080/offers?page={1..6}&scenario={clean|atelier|panne}&run={id}`
+- **Pagination :** Numérotée (`page`, `total_pages = 6`, condition d'arrêt : `next_page` nul). Chaque page livre 4 offres (24 offres au total).
+- **Contrat de données :** `offer_id` (texte unique, clé métier), `supplier_id` (`F01`, `F02` ou `F03`), `product_id` (entier `1..24` présent dans le catalogue S2), `price_cents` (entier >= 0), `currency` (`"EUR"`), `available_units` (entier >= 0), `observed_on` (date ISO `AAAA-MM-JJ`).
+- **Exemple de réponse conforme :**
+  ```json
+  {"offer_id": "O001", "supplier_id": "F01", "product_id": 1, "price_cents": 625, "currency": "EUR", "available_units": 2, "observed_on": "2026-11-24"}
