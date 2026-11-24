@@ -76,3 +76,28 @@ Le dépôt regroupe l'ensemble des scripts reproductibles de la chaîne de donn�
 - **Exemple de réponse conforme :**
   ```json
   {"offer_id": "O001", "supplier_id": "F01", "product_id": 1, "price_cents": 625, "currency": "EUR", "available_units": 2, "observed_on": "2026-11-24"}
+
+---
+
+## 6. Séance S4 — Chargement PostgreSQL et Transformations dbt
+
+### 1. Chargement Transactionnel & Idempotent (`transformation/chargement_postgres.py`)
+- **Schéma et table cible :** `fournisseurs.offres_observees`, isolée des tables transactionnelles (`public`)[cite: 22].
+- **Grain et clé primaire :** `(offer_id, observed_on)` — permet de conserver l'historique journalier d'une même offre sans duplication[cite: 25].
+- **Atomicité et rejeu :** Transaction unique (`with conn.transaction():`) avec gestion des conflits `ON CONFLICT (offer_id, observed_on) DO UPDATE ... WHERE IS DISTINCT FROM`[cite: 22, 23].
+  - **1er passage (`offres.jsonl`) :** 20 lignes lues, **20 insérées**, 0 rejetée[cite: 22].
+  - **2nd passage (rejeu du même lot) :** 20 lignes lues, **0 insérée**, **20 inchangées** (idempotence validée)[cite: 22].
+
+### 2. Architecture des modèles dbt (`transformation/dbt/`)
+- **Sources (`models/staging/sources.yml`) :** `fournisseurs.offres_observees` (S3) et `public.products`, `public.orders`, `public.order_items` (S1–S2)[cite: 22].
+- **Couches et matérialisations :**
+  - `staging` (`view`) : `stg_offres`, `stg_products`, `stg_ventes_produits` (harmonisation des noms, conversion centimes → euros, pré-agrégation des ventes `completed` pour éviter toute multiplication artificielle de lignes)[cite: 22, 25].
+  - `intermediate` (`view`) : `int_offres_enrichies` (jointure offres fournisseurs × catalogue produits et calcul de la marge unitaire)[cite: 22, 25].
+  - `marts` (`table`) : `mart_comparaison_offres` (grain : 1 ligne = 1 offre observée à une date donnée, 20 lignes au total, comparant prix d'achat fournisseur, prix catalogue, marge et ventes historiques)[cite: 22, 25].
+- **Tests et contrôles :** Tests `unique` / `not_null` sur les sources et test SQL personnalisé `test_prix_et_volumes_coherents.sql` exécutés avec succès via `dbt build`[cite: 20, 22].
+
+### 3. Commandes de reproduction et limites
+- **Exécution locale :**
+  ```bash
+  python transformation/chargement_postgres.py
+  dbt build --profiles-dir ../../s4/travail/profil
