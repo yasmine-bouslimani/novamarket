@@ -1,0 +1,4 @@
+{"page": 2, "position": 1, "motif": "champs_manquants:supplier_id", "objet_brut": {"offer_id": "O005", "product_id": 5, "price_cents": 1125, "currency": "EUR", "available_units": 10, "observed_on": "2026-11-24"}}
+{"page": 3, "position": 2, "motif": "type_price_cents_invalide", "objet_brut": {"offer_id": "O010", "supplier_id": "F01", "product_id": 10, "price_cents": "inconnu", "currency": "EUR", "available_units": 20, "observed_on": "2026-11-24"}}
+{"page": 5, "position": 1, "motif": "product_id_hors_catalogue:9999", "objet_brut": {"offer_id": "O017", "supplier_id": "F02", "product_id": 9999, "price_cents": 2625, "currency": "EUR", "available_units": 34, "observed_on": "2026-11-24"}}
+{"page": 6, "position": 4, "motif": "doublon_offer_id:O001", "objet_brut": {"offer_id": "O001", "supplier_id": "F01", "product_id": 1, "price_cents": 625, "currency": "EUR", "available_units": 2, "observed_on": "2026-11-24"}}

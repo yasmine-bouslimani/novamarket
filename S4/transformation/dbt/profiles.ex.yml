@@ -1,0 +1,12 @@
+novamarket_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: 127.0.0.1
+      port: 5432
+      user: atelier
+      password: "{{ env_var('DBT_ENV_SECRET_PASSWORD') }}"
+      dbname: "{{ env_var('DBT_DATABASE', 'novamarket') }}"
+      schema: dbt_dev
+      threads: 2

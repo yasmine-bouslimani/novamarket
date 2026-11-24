@@ -1,0 +1,33 @@
+version: 2
+
+sources:
+  - name: fournisseurs
+    schema: fournisseurs
+    description: "Observations des offres fournisseurs chargées depuis le JSONL S3."
+    tables:
+      - name: offres_observees
+        description: "Grain : une offre fournisseur observée à une date donnée (offer_id, observed_on)."
+        columns:
+          - name: offer_id
+            tests:
+              - not_null
+          - name: observed_on
+            tests:
+              - not_null
+          - name: product_id
+            tests:
+              - not_null
+
+  - name: novamarket_core
+    schema: public
+    description: "Tables transactionnelles et catalogue NovaMarket (S1 et S2)."
+    tables:
+      - name: products
+        columns:
+          - name: product_id
+            tests:
+              - unique
+              - not_null
+      - name: categories
+      - name: orders
+      - name: order_items

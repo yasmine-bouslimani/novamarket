@@ -1,0 +1,14 @@
+{
+  "statut": "succes",
+  "scenario": "atelier",
+  "run": "groupe-atelier-final",
+  "pages_attendues": 6,
+  "pages_recues": 6,
+  "requetes_http": 9,
+  "retries": 3,
+  "lignes_examinees": 24,
+  "lignes_valides": 20,
+  "lignes_rejetees": 4,
+  "duree_secondes": 1.385,
+  "erreurs_pages": []
+}
