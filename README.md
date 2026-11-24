@@ -96,8 +96,4 @@ Le dépôt regroupe l'ensemble des scripts reproductibles de la chaîne de donn�
   - `marts` (`table`) : `mart_comparaison_offres` (grain : 1 ligne = 1 offre observée à une date donnée, 20 lignes au total, comparant prix d'achat fournisseur, prix catalogue, marge et ventes historiques)[cite: 22, 25].
 - **Tests et contrôles :** Tests `unique` / `not_null` sur les sources et test SQL personnalisé `test_prix_et_volumes_coherents.sql` exécutés avec succès via `dbt build`[cite: 20, 22].
 
-### 3. Commandes de reproduction et limites
-- **Exécution locale :**
-  ```bash
-  python transformation/chargement_postgres.py
-  dbt build --profiles-dir ../../s4/travail/profil
+
