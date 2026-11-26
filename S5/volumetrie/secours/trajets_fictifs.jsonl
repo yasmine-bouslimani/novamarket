@@ -1,0 +1,6 @@
+{"Start_Zone":1,"Trip_Distance":2.5,"Trip_Duration":600}
+{"Start_Zone":4,"Trip_Distance":3.0,"Trip_Duration":700}
+{"Start_Zone":4,"Trip_Distance":1.5,"Trip_Duration":400}
+{"Start_Zone":7,"Trip_Distance":4.0,"Trip_Duration":900}
+{"Start_Zone":7,"Trip_Distance":-2.0,"Trip_Duration":500}
+{"Start_Zone":999,"Trip_Distance":1.0,"Trip_Duration":300}

@@ -1,0 +1,8 @@
+{
+  "repo": "DinoPonjevic/NYC_TaxiData",
+  "revision": "5941adbf8c0b9930e47002dc3103de3f9291360d",
+  "parquet_files": 371,
+  "parquet_bytes": 39350805895,
+  "shard": "2024/yellow/yellow_tripdata_2024-01.parquet",
+  "columns": ["Start_Zone", "Trip_Distance", "Trip_Duration"]
+}
