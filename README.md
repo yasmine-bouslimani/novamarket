@@ -1,4 +1,4 @@
-# Évaluation Collective n°1 — Projet NovaMarket (S1 à S3)
+# Évaluation Collective n°1 — Projet NovaMarket (S1 à S5)
 
 ## 1. Architecture et Exécution du Projet
 Le dépôt regroupe l'ensemble des scripts reproductibles de la chaîne de données NovaMarket :
