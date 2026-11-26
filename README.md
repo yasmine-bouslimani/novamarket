@@ -96,17 +96,6 @@ Le dépôt regroupe l'ensemble des scripts reproductibles de la chaîne de donn�
   - `marts` (`table`) : `mart_comparaison_offres` (grain : 1 ligne = 1 offre observée à une date donnée, 20 lignes au total, comparant prix d'achat fournisseur, prix catalogue, marge et ventes historiques)[cite: 22, 25].
 - **Tests et contrôles :** Tests `unique` / `not_null` sur les sources et test SQL personnalisé `test_prix_et_volumes_coherents.sql` exécutés avec succès via `dbt build`[cite: 20, 22].
 
-### 3. Commandes de reproduction et limites
-- **Exécution locale sous Windows PowerShell (depuis la racine `novamarket/`) :**
-  ```powershell
-  $env:NOVAMARKET_DSN="host=127.0.0.1 port=5432 dbname=novamarket user=atelier password=<votre_mot_de_passe>"
-  python transformation\chargement_postgres.py
-
-  cd transformation\dbt
-  $env:DBT_ENV_SECRET_PASSWORD="<votre_mot_de_passe>"
-  $env:DBT_DATABASE="novamarket"
-  dbt build --profiles-dir .
-
 ---
 
 ## 7. Séance S5 — Streaming Hugging Face, PySpark et Hub
@@ -129,7 +118,7 @@ Le dépôt regroupe l'ensemble des scripts reproductibles de la chaîne de donn�
   - Effectifs après jointure (`LEFT JOIN`) : **[XXX]** trajets (aucune multiplication artificielle).
   - Export au format Parquet (`mode("errorifexists")`) relu et vérifié par assertion de comptage (`df_relu.count() == df_agrege.count()`).
 
-### 4. Publication et versionnement sur Hugging Face Hub (`volumetrie/publication/README.md`)
+### 4. Publication et versionnement sur Hugging Face Hub (`volumetrie/publication/README.md`)  "Si j'avais la possibilité de le faire sur mon PC "
 - **Conformité :** Aucune donnée brute du miroir (licence `unknown`) n'a été republiée ; seuls les indicateurs agrégés par zone et la Dataset Card ont été publiés.
 - **Dépôt privé :** `https://huggingface.co/datasets/[COMPTE_HF]/novamarket-s5-exercice`
 - **Révisions vérifiées :**
