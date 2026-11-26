@@ -107,3 +107,31 @@ Le dépôt regroupe l'ensemble des scripts reproductibles de la chaîne de donn�
   $env:DBT_DATABASE="novamarket"
   dbt build --profiles-dir .
 
+---
+
+## 7. Séance S5 — Streaming Hugging Face, PySpark et Hub
+
+### 1. Organisation du travail et environnement (Binôme)
+- **Répartition des tâches :** Mon poste Windows d'entreprise étant restreint (impossibilité d'installer Java 21, `winutils.exe` et les dépendances Python/Spark), j'ai conçu et rédigé l'ensemble des scripts (`collecte_streaming.py`, `traitement_spark.py`) ainsi que la Dataset Card (`volumetrie/publication/README.md`), puis nous avons exécuté le pipeline et réalisé la publication Hugging Face Hub sur le poste opérationnel de mon binôme (**[Prénom Nom du binôme]**).
+
+### 2. Fiche Source & Streaming borné (`volumetrie/streaming/collecte_streaming.py`)
+- **Dépôt source :** `DinoPonjevic/NYC_TaxiData` (révision `5941adbf8c0b9930e47002dc3103de3f9291360d`, 371 fichiers Parquet, ~39,35 Go).
+- **Partition et colonnes :** `2024/yellow/yellow_tripdata_2024-01.parquet` (`Start_Zone`, `Trip_Distance` en miles, `Trip_Duration` en secondes).
+- **Justification du streaming :** Le volume global (39,35 Go) rend un chargement intégral en RAM inadapté ; la lecture progressive (`streaming=True`) permet de borner le parcours et d'appliquer les filtres qualité à la volée avant fermeture de l'itérateur dans un bloc `finally`.
+- **Mesures d'extraction (v1) :** **[500]** lignes parcourues avant filtrage → **[XXX]** retenues, **[XXX]** rejetées (valeurs nulles ou distances/durées incohérentes).
+
+### 3. Pipeline PySpark (`volumetrie/spark/traitement_spark.py`)
+- **Traitements :** Typage explicite, conversion des distances en kilomètres (`1 mile = 1,60934 km`), calcul de la vitesse moyenne (`km/h`), détection des zones non appariées (`left_anti`) avant jointure avec `zones.csv` dédupliqué, et agrégation par zone de départ.
+- **Contrôles de volume et Parquet :**
+  - Effectifs avant jointure : **[XXX]** trajets valides (dont **[X]** sans correspondance dans `zones.csv`).
+  - Effectifs après jointure (`LEFT JOIN`) : **[XXX]** trajets (aucune multiplication artificielle).
+  - Export au format Parquet (`mode("errorifexists")`) relu et vérifié par assertion de comptage (`df_relu.count() == df_agrege.count()`).
+
+### 4. Publication et versionnement sur Hugging Face Hub (`volumetrie/publication/README.md`)
+- **Conformité :** Aucune donnée brute du miroir (licence `unknown`) n'a été republiée ; seuls les indicateurs agrégés par zone et la Dataset Card ont été publiés.
+- **Dépôt privé :** `https://huggingface.co/datasets/[COMPTE_HF]/novamarket-s5-exercice`
+- **Révisions vérifiées :**
+  - **v1** (échantillon 500 lignes) — SHA : `[COLLER_SHA_V1]`
+  - **v2** (échantillon élargi à 1 000 lignes) — SHA : `[COLLER_SHA_V2]`
+  - Récupération des deux révisions contrôlée via `hf download ... --revision <SHA>`.
+
