@@ -104,7 +104,7 @@ Le dépôt regroupe l'ensemble des scripts reproductibles de la chaîne de donn�
 - **Répartition des tâches :** Mon poste Windows d'entreprise étant restreint (impossibilité d'installer Java 21, `winutils.exe` et les dépendances Python/Spark), j'ai conçu et rédigé l'ensemble des scripts (`collecte_streaming.py`, `traitement_spark.py`) ainsi que la Dataset Card (`volumetrie/publication/README.md`),
   ""
   pour toutes les taches que je n'ai pas fait sur mon pc j'ai suivi CHLOE sur cette partie la 
-"""
+"""  REMARQUE : j'ai laissé [XX] car je n'avais pas la possibilité de tester sur mon pc"
 ### 2. Fiche Source & Streaming borné (`volumetrie/streaming/collecte_streaming.py`)
 - **Dépôt source :** `DinoPonjevic/NYC_TaxiData` (révision `5941adbf8c0b9930e47002dc3103de3f9291360d`, 371 fichiers Parquet, ~39,35 Go).
 - **Partition et colonnes :** `2024/yellow/yellow_tripdata_2024-01.parquet` (`Start_Zone`, `Trip_Distance` en miles, `Trip_Duration` en secondes).
